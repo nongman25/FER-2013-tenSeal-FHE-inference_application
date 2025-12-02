@@ -23,7 +23,11 @@ class EmotionService:
         enc_image_payload: str,
         key_id: str,
     ) -> EncryptedPredictionResponse:
+        # Log entry
         enc_prediction = self.he_engine.run_encrypted_inference(enc_image_payload, key_id)
-        enc_summary = self.he_engine.postprocess_prediction_to_summary(enc_prediction, target_date)
-        self.repo.upsert_enc_prediction(db, user_id, target_date, enc_summary)
+        # Store encrypted logits (or summary if postprocess changes in future)
+        self.repo.upsert_enc_prediction(db, user_id, target_date, enc_prediction)
         return EncryptedPredictionResponse(ciphertext=enc_prediction, date=target_date)
+
+    def get_raw_history(self, db: Session, user_id: str, days: int):
+        return self.repo.get_recent_enc_predictions(db, user_id, days)

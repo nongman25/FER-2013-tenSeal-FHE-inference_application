@@ -1,7 +1,8 @@
 """SQLAlchemy model for encrypted emotion predictions."""
 from __future__ import annotations
 
-from sqlalchemy import Column, Date, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, Date, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 from app.core.db import Base
 
@@ -13,4 +14,4 @@ class EmotionData(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(String(64), ForeignKey("user.user_id"), nullable=False, index=True)
     date = Column(Date, nullable=False, index=True)
-    enc_prediction = Column(Text, nullable=False)
+    enc_prediction = Column(LONGTEXT, nullable=False)

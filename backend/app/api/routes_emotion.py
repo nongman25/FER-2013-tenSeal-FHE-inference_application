@@ -1,7 +1,7 @@
 """Emotion inference and history routes."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request
@@ -12,6 +12,8 @@ from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.emotion import (
+    EncryptedDailyPrediction,
+    EncryptedHistoryResponse,
     EncryptedImageRequest,
     EncryptedNDayAnalysisResponse,
     EncryptedPredictionResponse,
@@ -38,11 +40,11 @@ def analyze_today(
     emotion_service: EmotionService = Depends(get_emotion_service),
 ) -> EncryptedPredictionResponse:
     tz = ZoneInfo(settings.EMOTION_DB_TIMEZONE)
-    today = datetime.now(tz=tz).date()
+    target_date = payload.date or datetime.now(tz=tz).date()
     return emotion_service.analyze_and_store(
         db=db,
         user_id=current_user.user_id,
-        target_date=today,
+        target_date=target_date,
         enc_image_payload=payload.ciphertext,
         key_id=payload.key_id,
     )
@@ -50,7 +52,7 @@ def analyze_today(
 
 @router.get("/history", response_model=EncryptedNDayAnalysisResponse)
 def history(
-    days: int | None = None,
+    days: int = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     analysis_service: AnalysisService = Depends(get_analysis_service),
@@ -58,3 +60,17 @@ def history(
     window = days or settings.EMOTION_ANALYSIS_DAYS
     ciphertext = analysis_service.analyze_recent_days(db, current_user.user_id, window)
     return EncryptedNDayAnalysisResponse(ciphertext=ciphertext)
+
+
+@router.get("/history-raw", response_model=EncryptedHistoryResponse)
+def history_raw(
+    days: int = None,
+    key_id: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    emotion_service: EmotionService = Depends(get_emotion_service),
+) -> EncryptedHistoryResponse:
+    window = days or settings.EMOTION_ANALYSIS_DAYS
+    entries = emotion_service.get_raw_history(db, current_user.user_id, window)
+    response_entries = [EncryptedDailyPrediction(date=e.date, ciphertext=e.enc_prediction) for e in entries]
+    return EncryptedHistoryResponse(key_id=key_id or "default", days=window, entries=response_entries)

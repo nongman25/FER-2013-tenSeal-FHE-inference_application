@@ -4,8 +4,13 @@ sqlalchemy
 pymysql
 python-jose[cryptography]
 passlib[bcrypt]
-pydantic
+# Pin bcrypt to avoid upstream about/__about__ issues
+bcrypt==4.0.1
+# Pin to Pydantic v1 for BaseSettings
+pydantic==1.10.14
+email-validator
 python-multipart
-# Optional (for real HE inference)
-# tenseal
-# torch
+# For real FHE inference
+numpy<2
+tenseal
+torch

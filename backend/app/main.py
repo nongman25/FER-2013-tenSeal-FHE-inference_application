@@ -1,10 +1,12 @@
 """FastAPI application factory wiring routes, services, and shared state."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+import logging
+import time
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import routes_auth, routes_emotion, routes_health
+from app.api import routes_auth, routes_emotion, routes_health, routes_he
 from app.core.db import Base, engine
 from app.models import emotion_data, user  # noqa: F401 - ensure models are registered
 from app.repositories.emotion_data_repository import EmotionDataRepository
@@ -16,6 +18,10 @@ from app.services.he_service import HEEmotionEngine
 
 
 def create_app() -> FastAPI:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+    )
     app = FastAPI(title="FHE Emotion Prototype", version="0.1.0")
 
     # Initialize persistence and services
@@ -39,7 +45,17 @@ def create_app() -> FastAPI:
 
     app.include_router(routes_auth.router)
     app.include_router(routes_emotion.router)
+    app.include_router(routes_he.router)
     app.include_router(routes_health.router)
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.perf_counter()
+        logging.info("📥 %s %s START", request.method, request.url.path)
+        response = await call_next(request)
+        elapsed = (time.perf_counter() - start) * 1000
+        logging.info("🚀 %s %s -> %s (%.1f ms)", request.method, request.url.path, response.status_code, elapsed)
+        return response
 
     return app
 

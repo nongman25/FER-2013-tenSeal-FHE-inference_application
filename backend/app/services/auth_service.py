@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import create_access_token, get_password_hash
+from app.core.security import create_access_token, get_password_hash, verify_password
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import UserCreate, UserOut
 
@@ -28,7 +28,10 @@ class AuthService:
         return UserOut.from_orm(user)
 
     def authenticate_user(self, db: Session, user_id: str, password: str):
-        return self.user_repository.verify_credentials(db, user_id, password)
+        user = self.user_repository.get_by_user_id(db, user_id)
+        if user and verify_password(password, user.password):
+            return user
+        return None
 
     def issue_access_token(self, subject: str) -> str:
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
