@@ -73,7 +73,7 @@ Base URL (dev): `http://localhost:8000`
 - 대상 파일:
   - `services/analysis_service.py` (`analyze_recent_days(db, user_id, days)`): 현재 최신 enc_prediction 반환. 여기에 HE 집계 호출 추가.
   - `emotion_data_repository.get_recent_enc_predictions`: N일 enc_prediction 조회.
-  - `routes_emotion.py` → `/emotion/history`가 `AnalysisService` 사용.
+  - `routㄴes_emotion.py` → `/emotion/history`가 `AnalysisService` 사용.
 - 구현 아이디어: (이 부분은 ai가 써준거라 그냥 넘기셔도 됩니다.) 
   1) 암호문 요약 포맷 정의  
      - A안: 일별 logits 유지 후 HE-friendly 빈도 연산  
