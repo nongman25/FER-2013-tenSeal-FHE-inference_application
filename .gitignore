@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+
+# Node
+node_modules/
+dist/
+*.log
+
+# OS
+.DS_Store
+
+# Build artifacts
+*.sqlite

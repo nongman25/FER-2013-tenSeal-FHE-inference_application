@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pymysql
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic
+python-multipart
+# Optional (for real HE inference)
+# tenseal
+# torch
