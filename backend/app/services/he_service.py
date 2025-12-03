@@ -27,7 +27,7 @@ class HEEmotionEngine:
 
     def __init__(self) -> None:
         self._project_root = self._bootstrap_project_root()
-        self._context_dir = self._project_root / "he" / "contexts"
+        self._context_dir = self._project_root / "backend" / "app" / "he_contexts"
         self._context_dir.mkdir(parents=True, exist_ok=True)
         self._contexts: dict[str, Any] = {}
 
@@ -42,13 +42,9 @@ class HEEmotionEngine:
     # Bootstrap
     # ------------------------------------------------------------------
     def _bootstrap_project_root(self) -> Path:
-        try:
-            root = Path(__file__).resolve().parents[4]
-        except IndexError:
-            root = Path(__file__).resolve().parent
-        if str(root) not in sys.path:
-            sys.path.append(str(root))
-        return root
+        """Get project root (prototype_app directory)."""
+        # backend/app/services/he_service.py -> go up 3 levels to prototype_app
+        return Path(__file__).resolve().parents[3]
 
     def _initialize_engine(self) -> None:
         try:

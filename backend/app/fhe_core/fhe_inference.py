@@ -20,10 +20,14 @@ LOGGER = logging.getLogger(__name__)
 if not LOGGER.handlers:
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
+# Path configuration - all paths are relative to prototype_app/backend
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to backend directory
-DATA_DIR = PROJECT_ROOT / "data" / "processed"
 MODEL_PATH = PROJECT_ROOT / "app" / "inference_model" / "he_cnn_fer2013_enhanced.pt"
 NORM_STATS_PATH = PROJECT_ROOT / "app" / "inference_model" / "normalization_stats.json"
+
+# DATA_DIR is only used for testing/demo purposes (_load_split_tensors function)
+# Not required for production deployment
+DATA_DIR = PROJECT_ROOT / "data" / "processed"
 
 EncryptedScalar = ts.CKKSVector
 FeatureMap = List[List[List[EncryptedScalar]]]  # channel -> row -> col

@@ -1,4 +1,10 @@
-# FHE Emotion Prototype – N일 분석 확장 가이드
+# FHE Emotion Prototype – 독립 실행 가능 프로토타입
+
+## ⚠️ 중요: 완전 독립 실행 가능
+이 `prototype_app` 디렉토리는 **루트 프로젝트(`fhe_emotion`)에 의존하지 않습니다**.
+- ✅ 필요한 모든 코드가 `prototype_app` 내부에 포함됨
+- ✅ FHE 엔진, 모델, 전처리 로직이 모두 복사됨
+- ✅ 이 디렉토리만으로 배포/실행 가능
 
 ## 개요
 동형암호(FHE) 기반 감정 인식 풀스택 프로토타입입니다.
@@ -8,26 +14,46 @@
 
 향후 팀원이 서버 측 N일 암호문 분석을 구현할 수 있도록 현재 API/흐름/확장 포인트를 정리합니다.
 
-## 디렉터리
-- `backend/app/`
-  - `main.py`: FastAPI 앱, 미들웨어 로깅.
-  - `core/`: 설정, DB, 보안(JWT, bcrypt).
-  - `models/`: `user`, `emotion_data` (enc_prediction = LONGTEXT).
-  - `schemas/`: DTO (`auth`, `emotion`).
-  - `repositories/`: DB 접근.
-  - `services/`:
-    - `he_service.py`: TenSEAL FHE 엔진(스텁 없음, TenSEAL/torch/모델 필요).
-    - `emotion_service.py`: 단일일 추론 후 암호문 저장.
-    - `analysis_service.py`: N일 분석 스텁(확장 포인트).
-  - `api/`: `auth`, `emotion`, `he`, `health` 라우트.
-  - 모델 사본: `backend/app/inference_model/he_cnn_fer2013_enhanced.pt`
-- `client/streamlit_app/`
-  - `app.py`: UI(로그인/키설정/Today/History).
-  - `api_client.py`: FastAPI 호출.
-  - `fhe_keys.py`: CKKS 키 라이프사이클(비밀키 포함 컨텍스트 로컬 저장, eval 컨텍스트 전송).
-  - `preprocessing.py`: 48×48 그레이스케일 + 정규화.
-  - `state.py`: 세션 상태.
-  - `keys/`: `fhe-emotion-keypair.seal`, `fhe-eval-context.seal`, `key_meta.json`.
+## 디렉터리 구조
+```
+prototype_app/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                    # FastAPI 앱
+│   │   ├── core/                      # 설정, DB, JWT 보안
+│   │   ├── models/                    # User, EmotionData ORM
+│   │   ├── schemas/                   # Pydantic DTO
+│   │   ├── repositories/              # DB 접근 계층
+│   │   ├── services/
+│   │   │   ├── he_service.py         # FHE 엔진 (독립)
+│   │   │   ├── emotion_service.py    # 단일일 추론
+│   │   │   └── analysis_service.py   # N일 분석 (확장 포인트)
+│   │   ├── api/                      # REST 엔드포인트
+│   │   ├── fhe_core/                 # ✅ FHE 코어 로직 (루트에서 복사)
+│   │   │   ├── fhe_inference.py
+│   │   │   ├── fhe_cnn.py
+│   │   │   └── tenseal_context.py
+│   │   └── inference_model/          # ✅ 모델 파일 (로컬 사본)
+│   │       ├── he_cnn_fer2013_enhanced.pt
+│   │       └── normalization_stats.json
+│   └── requirements.txt
+├── client/
+│   ├── streamlit_app/
+│   │   ├── app.py                    # Streamlit UI
+│   │   ├── api_client.py             # HTTP 클라이언트
+│   │   ├── fhe_keys.py               # 키 생성/로드
+│   │   ├── preprocessing.py          # 이미지 전처리
+│   │   ├── config.py
+│   │   └── keys/                     # 클라이언트 키 저장소 (gitignore)
+│   └── requirements.txt
+└── README.md
+```
+
+### ✅ 독립성 확인사항
+- `backend/app/fhe_core/`: 루트 `he/`, `models/` 모듈을 복사하여 독립
+- `backend/app/inference_model/`: 모델 파일 로컬 사본
+- 모든 import가 `app.` prefix로 상대 경로 사용
+- `DATA_DIR`(테스트용)은 프로덕션에서 사용 안 함
 
 ## 백엔드 API
 Base URL (dev): `http://localhost:8000`
