@@ -19,8 +19,9 @@ META_PATH = KEY_DIR_PATH / "key_meta.json"
 
 # Match backend defaults (see he/tenseal_context.py)
 DEFAULT_POLY_MODULUS_DEGREE = 32768
-DEFAULT_COEFF_MOD_BIT_SIZES = (31, 26, 26, 26, 26, 26, 26, 31)
-DEFAULT_GLOBAL_SCALE = 2 ** 26
+DEFAULT_COEFF_MOD_BIT_SIZES = (60, 40, 40, 40, 40, 40, 40, 40, 60)
+DEFAULT_GLOBAL_SCALE = 2**40
+
 
 
 def _ensure_dir() -> None:

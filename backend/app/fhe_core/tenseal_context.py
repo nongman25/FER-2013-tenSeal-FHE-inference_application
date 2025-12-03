@@ -14,8 +14,8 @@ import tenseal as ts
 # Updated to 32768 to accommodate FER2013 input size (48x48) with im2col encoding
 DEFAULT_POLY_MODULUS_DEGREE = 32768
 # [31, 26, 26, 26, 26, 26, 26, 31]
-DEFAULT_COEFF_MOD_BIT_SIZES = (31, 26, 26, 26, 26, 26, 26, 31)
-DEFAULT_GLOBAL_SCALE = 2**26
+DEFAULT_COEFF_MOD_BIT_SIZES = (60, 40, 40, 40, 40, 40, 40, 40, 60)
+DEFAULT_GLOBAL_SCALE = 2**40
 
 
 def create_context(

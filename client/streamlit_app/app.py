@@ -10,6 +10,8 @@ import tenseal as ts
 
 import datetime
 
+from diagnostics import MentalHealthDiagnostics
+
 from api_client import get_client
 from fhe_keys import ensure_client_context
 from preprocessing import preprocess_image_to_fer2013_format
@@ -155,6 +157,35 @@ def render_history(client):
         freq_rows = [{"label": k, "count": v} for k, v in freq.items() if v > 0]
         if freq_rows:
             st.bar_chart(freq_rows, x="label", y="count")
+    if st.button("Run Server-Side FHE Analysis"):
+        ctx = st.session_state.ts_context
+        with st.spinner("Requesting Homomorphic Aggregation to Server..."):
+            try:
+                resp = client.analyze_history_fhe(days, st.session_state.key_id)
+                
+                enc_sum_b64 = resp["encrypted_sum"]
+                enc_vol_b64 = resp["encrypted_volatility"]
+                
+                st.success("Received encrypted statistics from server!")
+                
+            except Exception as e:
+                st.error(f"Server Error: {e}")
+                st.warning("데이터가 부족하거나 서버 설정이 잘못되었을 수 있습니다.")
+                return
+
+        with st.spinner("Decrypting & Diagnosing..."):
+            try:
+                # Base64 -> CKKSVector -> Decrypt
+                enc_sum = ts.ckks_vector_from(ctx, base64.b64decode(enc_sum_b64))
+                enc_vol = ts.ckks_vector_from(ctx, base64.b64decode(enc_vol_b64))
+                
+                plain_sum = np.array(enc_sum.decrypt())[:7]
+                plain_vol = np.array(enc_vol.decrypt())[:7]
+                diagnostics = MentalHealthDiagnostics(depression_th=8.0, instability_th=150.0)
+                diagnostics.analyze_and_render(plain_sum, plain_vol, days=days)
+                
+            except Exception as e:
+                st.error(f"Decryption Failed: {e}")
 
 
 def main():
