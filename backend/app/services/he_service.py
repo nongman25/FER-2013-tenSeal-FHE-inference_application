@@ -54,8 +54,8 @@ class HEEmotionEngine:
         try:
             import torch
             import tenseal as ts
-            from he import fhe_inference
-            from models.fhe_cnn import extract_fhe_parameters
+            from app.fhe_core import fhe_inference
+            from app.fhe_core.fhe_cnn import extract_fhe_parameters
 
             self._torch = torch
             self._ts = ts
