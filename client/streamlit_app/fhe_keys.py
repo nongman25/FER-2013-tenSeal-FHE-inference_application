@@ -68,19 +68,18 @@ def ensure_client_context() -> Tuple[ts.Context, str, str | None]:
     """Load existing context or generate a new one.
 
     Returns (context, key_id, eval_context_b64_if_new)
+    eval_context_b64 is returned even for existing keys to allow re-registration.
     """
     if keypair_exists():
         ctx = load_client_context()
         eval_bytes = EVAL_STATE_PATH.read_bytes() if EVAL_STATE_PATH.exists() else b""
         meta = json.loads(META_PATH.read_text()) if META_PATH.exists() else {}
         key_id = meta.get("key_id") or _compute_key_id(eval_bytes)
-        # if eval context missing but client exists, derive a public-only copy
-        eval_context_b64: str | None = None
-        if eval_bytes:
-            eval_context_b64 = None
-        else:
+        # Always return eval context to allow re-registration
+        if not eval_bytes:
             eval_bytes = ctx.serialize(save_secret_key=False, save_public_key=True, save_galois_keys=True, save_relin_keys=True)
             EVAL_STATE_PATH.write_bytes(eval_bytes)
+        eval_context_b64 = base64.b64encode(eval_bytes).decode("utf-8")
         return ctx, key_id, eval_context_b64
 
     # No existing keypair: generate

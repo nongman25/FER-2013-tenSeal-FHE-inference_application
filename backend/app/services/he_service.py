@@ -81,19 +81,29 @@ class HEEmotionEngine:
     # ------------------------------------------------------------------
     def register_eval_context(self, key_id: str, eval_context_b64: str) -> None:
         """Register a new evaluation context (no secret key) for a client."""
+        start = time.perf_counter()
         data = base64.b64decode(eval_context_b64.encode("utf-8"))
+        LOGGER.info("📥 Received eval context: %.2f KB", len(data) / 1024)
+        
         path = self._context_dir / f"{key_id}.seal"
         path.write_bytes(data)
+        
         if self._ts:
             try:
+                deserialize_start = time.perf_counter()
                 ctx = self._ts.context_from(data)
+                deserialize_time = (time.perf_counter() - deserialize_start) * 1000
+                LOGGER.info("⏱️  Context deserialization took %.1f ms", deserialize_time)
+                
                 # Safety: warn if secret key is present
                 if hasattr(ctx, "is_public") and not ctx.is_public():
                     LOGGER.warning("Received context for %s contains a secret key; server should not have it", key_id)
                 self._contexts[key_id] = ctx
             except Exception as exc:  # noqa: BLE001
                 LOGGER.warning("Unable to load TenSEAL context for %s: %s", key_id, exc)
-        LOGGER.info("Registered eval context for key_id=%s at %s", key_id, path)
+        
+        elapsed = (time.perf_counter() - start) * 1000
+        LOGGER.info("✅ Registered eval context for key_id=%s at %s (%.1f ms total)", key_id, path, elapsed)
 
     def _load_context_from_disk(self, key_id: str):
         if key_id in self._contexts:
@@ -115,17 +125,23 @@ class HEEmotionEngine:
     def run_encrypted_inference(self, enc_image_payload: str, key_id: str) -> str:
         """Run encrypted inference. Input/output are base64-encoded serialized CKKS vectors."""
         start = time.perf_counter()
-        if not self._ts or not self._runner_weights:
-            raise RuntimeError("HE engine not fully initialized (TenSEAL/weights missing)")
+        try:
+            if not self._ts or not self._runner_weights:
+                raise RuntimeError("HE engine not fully initialized (TenSEAL/weights missing)")
 
-        ctx = self._load_context_from_disk(key_id)
-        ciphertext_bytes = base64.b64decode(enc_image_payload.encode("utf-8"))
-        enc_x = self._ts.ckks_vector_from(ctx, ciphertext_bytes)
-        enc_logits = self._forward_im2col(enc_x)
-        logits_bytes = enc_logits.serialize()
-        elapsed = (time.perf_counter() - start) * 1000
-        LOGGER.info("🤖 Encrypted CNN inference done for key_id=%s (%.1f ms)", key_id, elapsed)
-        return base64.b64encode(logits_bytes).decode("utf-8")
+            LOGGER.info("🔐 Starting encrypted inference for key_id=%s", key_id)
+            ctx = self._load_context_from_disk(key_id)
+            ciphertext_bytes = base64.b64decode(enc_image_payload.encode("utf-8"))
+            LOGGER.info("📦 Decoding ciphertext: %d bytes", len(ciphertext_bytes))
+            enc_x = self._ts.ckks_vector_from(ctx, ciphertext_bytes)
+            enc_logits = self._forward_im2col(enc_x)
+            logits_bytes = enc_logits.serialize()
+            elapsed = (time.perf_counter() - start) * 1000
+            LOGGER.info("🤖 Encrypted CNN inference done for key_id=%s (%.1f ms)", key_id, elapsed)
+            return base64.b64encode(logits_bytes).decode("utf-8")
+        except Exception as e:
+            LOGGER.error("❌ Inference failed for key_id=%s: %s", key_id, str(e), exc_info=True)
+            raise
 
     def _forward_im2col(self, enc_x):
         """Encrypted CNN forward pass starting from im2col-encoded ciphertext."""

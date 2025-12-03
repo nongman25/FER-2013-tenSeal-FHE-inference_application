@@ -79,10 +79,13 @@ def render_key_setup(client):
     if st.button("Ensure local keypair & register eval context"):
         ctx, key_id, eval_b64 = ensure_client_context()
         if eval_b64:
-            client.register_he_key(key_id, eval_b64)
-            st.success(f"Registered eval context for key_id={key_id}")
+            try:
+                client.register_he_key(key_id, eval_b64)
+                st.success(f"✅ Registered eval context for key_id={key_id}")
+            except Exception as e:
+                st.error(f"❌ Registration failed: {str(e)}")
         else:
-            st.info("Existing keypair loaded; skipped registration.")
+            st.warning("⚠️ No eval context to register (this shouldn't happen)")
         set_key_info(key_id, ctx)
 
     if st.session_state.key_id:
