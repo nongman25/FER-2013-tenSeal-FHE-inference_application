@@ -1,6 +1,6 @@
 # Backend (FastAPI) – FHE Emotion Prototype
 
-프라이버시 친화 감정 인식 프로토타입의 FastAPI 백엔드입니다. 기존 FHE 모델/코드(`he/`, `models/`)를 **서비스 계층**에서 어댑터로 감싸고, JWT 인증/DB/도메인 로직을 얇은 라우터로 노출합니다. Streamlit 프론트가 **키 생성·암호화·복호화**를 담당하고, 백엔드는 공개/평가기 키와 암호문만 취급합니다.
+프라이버시 친화 감정 인식 프로토타입의 FastAPI 백엔드입니다. 필요한 FHE 코드/모델 파일은 모두 `backend/app` 내부(`app/fhe_core`, `app/inference_model`)에 포함되어 있으며, JWT 인증/DB/도메인 로직을 얇은 라우터로 노출합니다. Streamlit 프론트가 **키 생성·암호화·복호화**를 담당하고, 백엔드는 공개/평가기 키와 암호문만 취급합니다.
 
 ## 주요 기능
 - `/auth/*` : 회원 가입, 로그인(JWT 발급)
@@ -59,7 +59,7 @@ EMOTION_ANALYSIS_DAYS=10
 ### TenSEAL/모델
 - `requirements.txt`에 `tenseal`, `torch`를 포함했습니다. FHE 경로를 쓰려면 설치가 필요합니다.
 - 모델 가중치는 상위 경로 `models/fhe_cnn_fer2013_enhanced.pt`를 그대로 사용합니다.
-  - `services/he_service.py`가 `models/fhe_cnn.py`의 파라미터를 불러와 암호문 연산에 씁니다.
+  - `services/he_service.py`가 `app/fhe_core/fhe_cnn.py`의 파라미터를 불러와 암호문 연산에 씁니다.
 
 ## 라우트/주입 흐름
 - 라우터에서 `get_db()`로 세션 주입 → 서비스 호출

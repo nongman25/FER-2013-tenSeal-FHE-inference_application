@@ -56,8 +56,11 @@ def render_auth(client):
             reg_pass = st.text_input("Password", type="password", key="reg_pass")
             submitted = st.form_submit_button("Register")
             if submitted:
-                res = client.register(reg_user, reg_pass, reg_email or None)
-                st.success(f"Registered: {res}")
+                try:
+                    res = client.register(reg_user, reg_pass, reg_email or None)
+                    st.success(f"Registered: {res}")
+                except Exception as e:
+                    st.error(f"Register failed: {e}")
 
     with col2:
         st.subheader("Login")
@@ -66,9 +69,12 @@ def render_auth(client):
             login_pass = st.text_input("Password", type="password", key="login_pass")
             submitted = st.form_submit_button("Login")
             if submitted:
-                res = client.login(login_user, login_pass)
-                set_auth(res.get("access_token"), login_user)
-                st.success("Logged in")
+                try:
+                    res = client.login(login_user, login_pass)
+                    set_auth(res.get("access_token"), login_user)
+                    st.success("Logged in")
+                except Exception as e:
+                    st.error(f"Login failed: {e}")
 
 
 def render_key_setup(client):

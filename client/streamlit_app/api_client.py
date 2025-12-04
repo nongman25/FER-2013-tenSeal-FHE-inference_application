@@ -51,12 +51,20 @@ class APIClient:
 
     def _post(self, path: str, json: Dict[str, Any] | None = None, timeout: int = 120) -> Dict[str, Any]:
         res = requests.post(f"{self.base_url}{path}", json=json or {}, headers=self._headers(), timeout=timeout)
-        res.raise_for_status()
+        try:
+            res.raise_for_status()
+        except requests.HTTPError as exc:
+            detail = f"POST {path} -> {res.status_code} {res.reason}; body={res.text}"
+            raise requests.HTTPError(detail, response=res) from exc
         return res.json() if res.text else {}
 
     def _get(self, path: str, params: Dict[str, Any] | None = None) -> Dict[str, Any]:
         res = requests.get(f"{self.base_url}{path}", params=params or {}, headers=self._headers(), timeout=30)
-        res.raise_for_status()
+        try:
+            res.raise_for_status()
+        except requests.HTTPError as exc:
+            detail = f"GET {path} -> {res.status_code} {res.reason}; body={res.text}"
+            raise requests.HTTPError(detail, response=res) from exc
         return res.json() if res.text else {}
 
 
