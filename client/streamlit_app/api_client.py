@@ -38,6 +38,10 @@ class APIClient:
         params = {"days": days, "key_id": key_id}
         return self._get("/emotion/history-raw", params=params)
 
+    def analyze_history_fhe(self, days: int, key_id: str) -> Dict[str, str]:
+        payload = {"days": days, "key_id": key_id}
+        return self._post("/emotion/analyze-history", json=payload)
+
     # -------------------- Internal helpers --------------------
     def _headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}

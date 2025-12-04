@@ -38,3 +38,11 @@ class EmotionService:
 
     def get_raw_history(self, db: Session, user_id: str, days: int):
         return self.repo.get_recent_enc_predictions(db, user_id, days)
+
+    def get_history_statistics(self, db: Session, user_id: str, days: int, key_id: str) -> Dict[str, str]:
+        records = self.repo.get_recent_enc_predictions(db, user_id, days)
+        if not records:
+            return None
+        enc_logits_list = [r.enc_prediction for r in records]
+        stats = self.he_engine.run_encrypted_statistics(enc_logits_list, key_id)
+        return stats

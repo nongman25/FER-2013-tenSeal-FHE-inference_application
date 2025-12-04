@@ -42,3 +42,11 @@ class EncryptedHistoryResponse(BaseModel):
     key_id: str
     days: int
     entries: List[EncryptedDailyPrediction]
+
+class EncryptedStatsRequest(BaseModel):
+    days: int
+    key_id: str
+
+class EncryptedStatsResponse(BaseModel):
+    encrypted_sum: str
+    encrypted_volatility: str

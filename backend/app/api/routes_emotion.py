@@ -17,6 +17,8 @@ from app.schemas.emotion import (
     EncryptedImageRequest,
     EncryptedNDayAnalysisResponse,
     EncryptedPredictionResponse,
+    EncryptedStatsRequest,
+    EncryptedStatsResponse,
 )
 from app.services.analysis_service import AnalysisService
 from app.services.emotion_service import EmotionService
@@ -74,3 +76,23 @@ def history_raw(
     entries = emotion_service.get_raw_history(db, current_user.user_id, window)
     response_entries = [EncryptedDailyPrediction(date=e.date, ciphertext=e.enc_prediction) for e in entries]
     return EncryptedHistoryResponse(key_id=key_id or "default", days=window, entries=response_entries)
+
+@router.post("/analyze-history", response_model=EncryptedStatsResponse)
+def analyze_history(
+    payload: EncryptedStatsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    emotion_service: EmotionService = Depends(get_emotion_service),
+) -> EncryptedStatsResponse:
+    stats = emotion_service.get_history_statistics(
+        db=db, 
+        user_id=current_user.user_id, 
+        days=payload.days, 
+        key_id=payload.key_id
+    )
+    if not stats:
+        raise HTTPException(status_code=404, detail="No history data found")
+    return EncryptedStatsResponse(
+        encrypted_sum=stats["encrypted_sum"],
+        encrypted_volatility=stats["encrypted_volatility"]
+    )

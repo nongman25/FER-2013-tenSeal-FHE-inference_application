@@ -168,6 +168,49 @@ class HEEmotionEngine:
         enc_x = enc_x.mm(w["fc2_weight"]) + w["fc2_bias"]
         return enc_x
 
+    def run_encrypted_statistics(self, enc_logits_list_b64: List[str], key_id: str) -> Dict[str, str]:
+        start = time.perf_counter()
+        
+        if not enc_logits_list_b64:
+            raise ValueError("No encrypted data provided for statistics.")
+
+        try:
+            ctx = self._load_context_from_disk(key_id)
+
+            encrypted_vectors = []
+            for b64_str in enc_logits_list_b64:
+                data = base64.b64decode(b64_str.encode("utf-8"))
+                vec = self._ts.ckks_vector_from(ctx, data)
+                encrypted_vectors.append(vec)
+            
+            LOGGER.info("Computing stats for %d days (key_id=%s)", len(encrypted_vectors), key_id)
+
+            enc_sum = encrypted_vectors[0].copy()
+            for i in range(1, len(encrypted_vectors)):
+                enc_sum += encrypted_vectors[i]
+
+            enc_volatility = self._ts.ckks_vector(ctx, [0.0])
+            
+            for i in range(1, len(encrypted_vectors)):
+                diff = encrypted_vectors[i] - encrypted_vectors[i-1]
+                diff_sq = diff.square() # Requires RelinKeys in context
+                enc_volatility += diff_sq
+
+            sum_b64 = base64.b64encode(enc_sum.serialize()).decode("utf-8")
+            vol_b64 = base64.b64encode(enc_volatility.serialize()).decode("utf-8")
+
+            elapsed = (time.perf_counter() - start) * 1000
+            LOGGER.info("Stats calculation done (%.1f ms)", elapsed)
+
+            return {
+                "encrypted_sum": sum_b64,
+                "encrypted_volatility": vol_b64
+            }
+
+        except Exception as e:
+            LOGGER.error("Stats calculation failed for key_id=%s: %s", key_id, str(e), exc_info=True)
+            raise
+
     def postprocess_prediction_to_summary(self, enc_logits_payload: str, target_date: date) -> str:
         """Optional hook: for now return logits as-is."""
         return enc_logits_payload
