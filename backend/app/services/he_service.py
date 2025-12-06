@@ -34,7 +34,7 @@ class HEEmotionEngine:
         self._runner_weights: Optional[Dict[str, Any]] = None
         self._torch = None
         self._ts = None
-        self.class_labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
+        self.class_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 
         self._initialize_engine()
 

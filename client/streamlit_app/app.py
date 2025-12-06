@@ -17,7 +17,7 @@ from fhe_keys import ensure_client_context
 from preprocessing import preprocess_image_to_fer2013_format
 from state import init_session_state, set_auth, set_key_info
 
-EMOTION_LABELS = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
+EMOTION_LABELS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 KERNEL_SIZE = 9
 STRIDE = 6
 WINDOWS_NB = 49  # 7x7 windows for 48x48 input
