@@ -43,3 +43,7 @@ build/
 # Temporary files
 *.tmp
 .cache/
+
+doc/
+preprocession_test/
+out.txt
