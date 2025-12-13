@@ -13,4 +13,3 @@ python-multipart
 # For real FHE inference
 numpy<2
 tenseal
-torch

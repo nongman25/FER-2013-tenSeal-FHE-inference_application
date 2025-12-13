@@ -1,0 +1,64 @@
+# Python cache files
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+
+# Virtual environments (all locations)
+**/env/
+**/venv/
+**/.venv/
+
+# Pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache
+.hypothesis
+
+# IDE and editors
+.mypy_cache
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+**/.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Git
+.git
+.gitignore
+
+# Documentation and non-essential files
+*.md
+!requirements.txt
+doc/
+out/
+out.txt
+resources/
+
+# Exclude large FHE context/key files from build context
+# These will be mounted via volumes instead
+backend/app/he_contexts/
+client/streamlit_app/keys/
+
+# Test directories
+**/preprocession_test/
+**/tests/
+**/*_test.py
+**/*_tests.py
+

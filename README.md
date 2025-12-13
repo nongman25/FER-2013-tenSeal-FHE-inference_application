@@ -1,142 +1,145 @@
-# FHE Emotion Prototype – 독립 실행 가능 프로토타입
+# FHE Emotion Prototype (Privacy-Preserving AI)
 
-## ⚠️ 중요: 완전 독립 실행 가능
-이 `prototype_app` 디렉토리는 **루트 프로젝트(`fhe_emotion`)에 의존하지 않습니다**.
-- ✅ 필요한 모든 코드가 `prototype_app` 내부에 포함됨
-- ✅ FHE 엔진, 모델, 전처리 로직이 모두 복사됨
-- ✅ 이 디렉토리만으로 배포/실행 가능
+이 프로젝트는 **동형암호(Homomorphic Encryption, FHE)** 기술을 활용하여, 서버가 클라이언트의 원본 이미지를 전혀 보지 못하는 상태에서 감정을 분석하는 **프라이버시 보존형 AI 서비스**의 프로토타입입니다.
 
-## 개요
-동형암호(FHE) 기반 감정 인식 풀스택 프로토타입입니다.
-- **프론트엔드 (Streamlit, Python)**: 키 생성/보관, 이미지 전처리, 클라이언트 암호화/복호화, 단일일 추론 및 N일 히스토리 UI.
-- **백엔드 (FastAPI, Python)**: 인증, 키 등록, 암호문 추론, 암호문 히스토리 조회. 비밀키는 보지 않습니다.
-- **HE 엔진 (TenSEAL + Torch)**: 기존 모델 `he_cnn_fer2013_enhanced.pt`(백엔드 내부 `backend/app/inference_model/`에 사본)과 클라이언트가 제공한 평가 컨텍스트 사용.
+## 핵심 컨셉 (Core Concept)
 
-향후 팀원이 서버 측 N일 암호문 분석을 구현할 수 있도록 현재 API/흐름/확장 포인트를 정리합니다.
+1.  **Zero Privacy Leakage**: 사용자의 얼굴 이미지는 클라이언트(브라우저/로컬)에서 암호화되어 서버로 전송됩니다.
+2.  **Encrypted Inference**: 서버는 암호화된 상태 그대로 딥러닝(CNN) 연산을 수행합니다.
+3.  **Owner-Only Decryption**: 분석 결과 또한 암호화되어 있으며, 비밀키(Secret Key)를 가진 사용자 본인만 결과를 해독하여 볼 수 있습니다.
 
-## 디렉터리 구조
-```
-prototype_app/
-├── backend/
-│   ├── app/
-│   │   ├── main.py                    # FastAPI 앱
-│   │   ├── core/                      # 설정, DB, JWT 보안
-│   │   ├── models/                    # User, EmotionData ORM
-│   │   ├── schemas/                   # Pydantic DTO
-│   │   ├── repositories/              # DB 접근 계층
-│   │   ├── services/
-│   │   │   ├── he_service.py         # FHE 엔진 (독립)
-│   │   │   ├── emotion_service.py    # 단일일 추론
-│   │   │   └── analysis_service.py   # N일 분석 (확장 포인트)
-│   │   ├── api/                      # REST 엔드포인트
-│   │   ├── fhe_core/                 # ✅ FHE 코어 로직 (루트에서 복사)
-│   │   │   ├── fhe_inference.py
-│   │   │   ├── fhe_cnn.py
-│   │   │   └── tenseal_context.py
-│   │   └── inference_model/          # ✅ 모델 파일 (로컬 사본)
-│   │       ├── he_cnn_fer2013_enhanced.pt
-│   │       └── normalization_stats.json
-│   └── requirements.txt
-├── client/
-│   ├── streamlit_app/
-│   │   ├── app.py                    # Streamlit UI
-│   │   ├── api_client.py             # HTTP 클라이언트
-│   │   ├── fhe_keys.py               # 키 생성/로드
-│   │   ├── preprocessing.py          # 이미지 전처리
-│   │   ├── config.py
-│   │   └── keys/                     # 클라이언트 키 저장소 (gitignore)
-│   └── requirements.txt
-└── README.md
+## 시스템 아키텍처 (Architecture)
+
+이 프로젝트는 크게 \*\*Frontend (Client)\*\*와 \*\*Backend (Server)\*\*로 나뉘며, 철저한 역할 분리를 통해 보안을 유지합니다.
+
+### 1\. Client (Streamlit) - "The Trust Zone"
+
+  * **역할**: 사용자 인터페이스, **키 생성 및 관리**, 데이터 암호화/복호화
+  * **특징**:
+      * CKKS 동형암호 키 쌍(Public/Secret)을 생성합니다.
+      * \*\*비밀키(Secret Key)\*\*는 절대 서버로 전송되지 않고 로컬에만 저장됩니다.
+      * 이미지를 전처리하고 암호화하여 서버에 추론을 요청합니다.
+      * 서버로부터 받은 암호화된 결과를 복호화하여 시각화 및 정신건강 진단을 수행합니다.
+
+### 2\. Backend (FastAPI) - "The Untrusted Zone"
+
+  * **역할**: 인증, DB 저장, **동형암호 연산(Inference & Statistics)**
+  * **특징**:
+      * 클라이언트로부터 받은 \*\*Evaluation Key(연산 전용 키)\*\*만 등록합니다.
+      * TenSEAL 라이브러리를 사용해 암호화된 데이터 위에서 CNN 모델을 돌립니다.
+      * 암호화된 상태의 감정 데이터들을 합산하거나 변동성을 계산(Aggregation)하여 통계 자료를 만듭니다.
+
+-----
+
+## 🚀 Docker로 실행하기 (권장)
+
+복잡한 환경 설정 없이 Docker만 있으면 전체 서비스를 한 번에 실행할 수 있습니다.
+
+### 사전 준비
+*   [Docker Desktop](https://www.docker.com/products/docker-desktop/) 설치
+
+### 실행 방법
+프로젝트 루트 디렉토리(`prototype_app/`)에서 다음 명령어를 실행하세요.
+
+```bash
+docker-compose up --build
 ```
 
-### ✅ 독립성 확인사항
-- `backend/app/fhe_core/`: 루트 `he/`, `models/` 모듈을 복사하여 독립
-- `backend/app/inference_model/`: 모델 파일 로컬 사본
-- 모든 import가 `app.` prefix로 상대 경로 사용
-- `DATA_DIR`(테스트용)은 프로덕션에서 사용 안 함
+*   **Client (Streamlit):** [http://localhost:8501](http://localhost:8501)
+*   **Backend (API Docs):** [http://localhost:8000/docs](http://localhost:8000/docs)
+*   **DB (MySQL):** localhost:3306 (컨테이너 내부 통신)
 
-## 백엔드 API
-Base URL (dev): `http://localhost:8000`
+### 데이터 영속성 (Persistence)
+*   **DB 데이터:** `db_data` 볼륨에 저장되어 컨테이너를 재시작해도 유지됩니다.
+*   **FHE 키:** `client/streamlit_app/keys` 폴더에 저장됩니다. (로컬 파일 시스템과 마운트됨)
+*   **서버 컨텍스트:** `backend/app/he_contexts` 폴더에 저장됩니다.
 
-### Auth
-- `POST /auth/register` — `{ user_id, password, email? }`
-- `POST /auth/login` — `{ user_id, password }` -> `{ access_token, token_type }`
+---
 
-### HE 키 등록
-- `POST /he/register-key` (JWT)  
-  body: `{ key_id, eval_context_b64 }`  
-  → `he/contexts/{key_id}.seal`에 저장 후 캐시.
+## 로컬 개발 환경 설정 (Manual Setup)
 
-### 감정 추론
-- `POST /emotion/analyze-today` (JWT)
-  ```json
-  {
-    "ciphertext": "<b64 CKKS ciphertext>",
-    "key_id": "<client key id>",
-    "date": "YYYY-MM-DD" // 옵션, 미지정 시 서버 오늘 날짜
-  }
-  ```
-  흐름: eval 컨텍스트로 역직렬화 → 암호문 CNN → `{ ciphertext: <b64 logits>, date }` 반환 + DB 저장.
+Docker를 사용하지 않고 직접 실행하려면 아래 단계를 따르세요.
 
-### 히스토리
-- `GET /emotion/history-raw?days=N&key_id=...` (JWT)  
-  → `{ key_id, days, entries: [{ date, ciphertext }, ...] }` (암호문 리스트)
-- `GET /emotion/history` (stub) → placeholder 암호문
+### 1\. Backend (`prototype_app/backend`)
 
-### 헬스체크
-- `GET /health` -> `{ "status": "ok" }`
+API 서버와 FHE 엔진이 포함되어 있습니다.
 
-## 프론트엔드 동작(Streamlit)
-- 키 설정:
-  - 최초: CKKS 생성 → 비밀키 포함 컨텍스트 로컬(`fhe-emotion-keypair.seal`), eval 컨텍스트(`fhe-eval-context.seal`) 전송(`/he/register-key`).
-  - 이후: 로컬 키 자동 로드, 재등록 생략.
-- Today:
-  - 날짜 선택 → 업로드 → 전처리 → `ts.im2col_encoding`으로 암호화 → `/emotion/analyze-today` → 복호화/softmax → 라벨/확률 표시.
-- History:
-  - `/emotion/history-raw` 호출 → 각 암호문 복호화 → 빈도/타임라인 계산 및 표시.
+```bash
+backend/app/
+├── api/                    # REST API 라우터 (엔드포인트 정의)
+│   ├── routes_auth.py      # 회원가입, 로그인 (JWT)
+│   ├── routes_emotion.py   # 감정 분석 요청 및 히스토리 조회
+│   └── routes_he.py        # FHE Evaluation Key 등록
+├── core/                   # 설정, DB 연결, 보안 유틸리티
+├── fhe_core/               # ✅ FHE 핵심 로직 (TenSEAL + PyTorch)
+│   ├── fhe_cnn.py          # 동형암호 친화적 CNN 모델 (Square Activation 사용)
+│   ├── fhe_inference.py    # 암호화된 데이터에 대한 CNN 추론 로직 (im2col, conv2d)
+│   └── tenseal_context.py  # TenSEAL 컨텍스트 설정 (CKKS 파라미터 등)
+├── inference_model/        # 학습된 모델 가중치 (.pt) 및 정규화 통계
+├── models/                 # DB 스키마 (User, EmotionData)
+├── repositories/           # DB CRUD 계층
+├── schemas/                # Pydantic 데이터 검증 모델 (DTO)
+└── services/               # 비즈니스 로직
+    ├── emotion_service.py  # 단일 이미지 분석 오케스트레이션
+    ├── analysis_service.py # N일간의 데이터 분석 서비스
+    └── he_service.py       # ✅ FHE 엔진 어댑터 (암호화 연산 총괄)
+```
 
-## N일 분석 확장 가이드(서버)
-- 대상 파일:
-  - `services/analysis_service.py` (`analyze_recent_days(db, user_id, days)`): 현재 최신 enc_prediction 반환. 여기에 HE 집계 호출 추가.
-  - `emotion_data_repository.get_recent_enc_predictions`: N일 enc_prediction 조회.
-  - `routㄴes_emotion.py` → `/emotion/history`가 `AnalysisService` 사용.
-- 구현 아이디어: (이 부분은 ai가 써준거라 그냥 넘기셔도 됩니다.) 
-  1) 암호문 요약 포맷 정의  
-     - A안: 일별 logits 유지 후 HE-friendly 빈도 연산  
-     - B안: 일별 Enc(one-hot) 저장, 동형 덧셈으로 빈도 집계  
-  2) `HEEmotionEngine`에 집계 메서드 추가  
-     - `aggregate_enc_summaries(enc_list: list[str], key_id: str) -> str` (암호문 집계 결과 반환)  
-  3) `AnalysisService.analyze_recent_days`에서 enc_predictions → HE 집계 호출 → 결과 ciphertext 반환  
-  4) `/emotion/history-raw`는 계속 클라이언트 복호화용으로 유지, `/emotion/history`는 집계 암호문 반환하도록 확장
-- 클라이언트 변경(선택): History 페이지에 `raw`/`aggregated` 모드 스위치 추가, `/emotion/history` 집계 ciphertext 복호화 후 단일 표시.
+### 2\. Client (`prototype_app/client`)
 
-## 키 파일 역할
-- 클라이언트 전용: `fhe-emotion-keypair.seal` (비밀키 포함, 절대 서버 전송 금지)
-- 서버 전송: `fhe-eval-context.seal` (비밀키 없는 eval 컨텍스트)
-- 메타: `key_meta.json` (`key_id` 저장)
-- 서버 보관: `he/contexts/{key_id}.seal` (eval 컨텍스트), `emotiondata.enc_prediction` (LONGTEXT, b64 CKKS ciphertext)
+사용자 단말 역할을 하는 Streamlit 애플리케이션입니다.
 
-## 제약/주의
-- HE 엔진: TenSEAL + torch + 모델 필수, 스텁 없음.
-- bcrypt 비밀번호 72바이트 이하(스키마에서 검증).
-- 추론 시간이 길 수 있어 클라이언트 HTTP 타임아웃 120s.
-- 로깅: 요청 시작(`📥`), 완료(`🚀 ...`), HE 추론(`🤖 ...`), 컨텍스트 로드(`🔑`), DB upsert 에러(길이/예외).
+```bash
+client/streamlit_app/
+├── app.py                  # 메인 UI 진입점 (네비게이션, 화면 렌더링)
+├── api_client.py           # 백엔드 API 통신 모듈
+├── diagnostics.py          # ✅ 정신건강 진단 로직 (복호화된 데이터 분석)
+├── fhe_keys.py             # ✅ 키 관리 모듈 (키 생성, 로컬 저장, 불러오기)
+├── preprocessing.py        # 이미지 전처리 (Grayscale, Resize, CLAHE)
+├── state.py                # Streamlit 세션 상태 관리
+├── config.py               # 환경 변수 및 경로 설정
+└── keys/                   # (자동생성) 로컬 키 저장소 (.gitignore 권장)
+```
 
-## 빠른 실행(개발)
-- Backend:
-  ```
-  cd prototype_app/backend
-  python -m venv .venv
-  source .venv/bin/activate
-  pip install -r requirements.txt
-  uvicorn app.main:app --reload --app-dir . --port 8000
-  ```
-- Client:
-  ```
-  cd prototype_app/client
-  python -m venv .venv
-  source .venv/bin/activate
-  pip install -r requirements.txt
-  cd streamlit_app
-  streamlit run app.py
-  ```
+-----
+
+## 상세 기능 설명 (Features)
+
+### 1\. 동형암호 키 관리 (Key Management)
+
+  * **Client**: `fhe_keys.py`에서 CKKS 스킴(Poly Modulus Degree=32768)을 사용해 키를 생성합니다. 비밀키가 포함된 컨텍스트는 로컬 `keys/` 폴더에 `.seal` 파일로 저장됩니다.
+  * **Server**: 클라이언트가 보낸 **Evaluation Key**(비밀키 제외)를 받아 `he_contexts/`에 저장하고, 이를 사용해 연산을 수행합니다.
+
+### 2\. FHE 기반 감정 추론 (Encrypted Inference)
+
+  * **Process**:
+    1.  클라이언트가 이미지를 업로드하면 48x48 Grayscale로 변환 및 정규화합니다.
+    2.  `im2col` 인코딩 방식을 사용해 이미지를 벡터화하고 암호화(CKKS Vector)합니다.
+    3.  서버는 암호문을 받아 `FHEEmotionCNN` 모델(동형암호 연산을 위해 ReLU 대신 **Square($x^2$) 활성화 함수** 사용)을 통과시킵니다.
+    4.  결과값(Logits)은 여전히 암호화된 상태로 클라이언트에 반환됩니다.
+
+### 3\. 암호화된 통계 분석 (Encrypted Statistics)
+
+  * **Server-Side Aggregation**: 서버는 사용자의 감정 히스토리를 평문으로 복호화하지 않고도 통계를 낼 수 있습니다.
+      * **합계(Sum)**: 암호문끼리의 덧셈 연산.
+      * **변동성(Volatility)**: 인접한 날짜의 감정 차이를 제곱하여 합산.
+  * 이 기능은 `he_service.run_encrypted_statistics`에 구현되어 있습니다.
+
+### 4\. 정신건강 자가 진단 (Mental Health Diagnostics)
+
+  * 클라이언트는 서버가 계산해준 '암호화된 통계'를 받아 복호화합니다.
+  * `diagnostics.py`에서 복호화된 데이터를 바탕으로 다음을 진단합니다:
+      * **우울증 위험**: 특정 기간 동안 'Sad' 감정의 강도가 임계치를 넘는지 분석.
+      * **양극성 장애(조울증) 위험**: 감정의 변동성(Instability Score)이 높은지 분석.
+  * 결과는 직관적인 UI(안정/주의/위험)로 사용자에게 표시됩니다.
+
+-----
+
+## 기술 스택 (Tech Stack)
+
+  * **Language**: Python 3.9+
+  * **FHE Library**: [TenSEAL](https://github.com/OpenMined/TenSEAL) (CKKS Scheme)
+  * **Deep Learning**: PyTorch (Model Definition & Weights)
+  * **Backend**: FastAPI, SQLAlchemy, MySQL/MariaDB
+  * **Frontend**: Streamlit
+  * **Image Processing**: OpenCV, Pillow
