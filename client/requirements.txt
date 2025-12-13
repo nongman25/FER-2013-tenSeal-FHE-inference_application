@@ -5,4 +5,3 @@ numpy
 tenseal
 scipy
 opencv-python-headless
-matplotlib

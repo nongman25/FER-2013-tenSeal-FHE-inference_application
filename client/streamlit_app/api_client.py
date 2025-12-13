@@ -49,7 +49,7 @@ class APIClient:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
 
-    def _post(self, path: str, json: Dict[str, Any] | None = None, timeout: int = 120) -> Dict[str, Any]:
+    def _post(self, path: str, json: Dict[str, Any] | None = None, timeout: int = 300) -> Dict[str, Any]:
         res = requests.post(f"{self.base_url}{path}", json=json or {}, headers=self._headers(), timeout=timeout)
         try:
             res.raise_for_status()
